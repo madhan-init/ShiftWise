@@ -1,5 +1,5 @@
 # ShiftWise
-
+Answers for the exact framework version you run, plus a clear list of what changed between versions.
 ## Problem
 Many Indian services companies still run old Spring Boot versions and are now upgrading to 3.x. Developers mix up advice written for 2.7 and 3.x, and renamed properties fail silently at runtime because Spring ignores unknown keys. There is no reliable list of what changed in the code between versions, so problems show up late in testing or production. ShiftWise answers every question using only the Spring Boot source code of the version the developer selects, and shows exactly what changed between two versions. It also reviews upgrade pull requests and comments with cited fixes.
 
