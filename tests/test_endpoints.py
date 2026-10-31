@@ -1,18 +1,9 @@
 from unittest.mock import patch
 
+import httpx
 import pytest
 
 from app.llm import LLMError, LLMResult
-from app.main import _usage
-
-
-@pytest.fixture(autouse=True)
-def _reset_usage():
-    _usage["fallback_calls"] = 0
-    _usage["by_model"].clear()
-    yield
-    _usage["fallback_calls"] = 0
-    _usage["by_model"].clear()
 
 
 def _fake_result(text="answer", model="llama3.1:8b", fallback_used=False):
@@ -22,8 +13,8 @@ def _fake_result(text="answer", model="llama3.1:8b", fallback_used=False):
     )
 
 
-class TestAsk:
-    def test_success(self, client):
+class TestAskPrimarySucceeds:
+    def test_returns_answer(self, client):
         with patch("app.main.complete", return_value=_fake_result(text="Hello!")):
             r = client.post("/ask", json={"question": "hi"})
         assert r.status_code == 200
@@ -32,12 +23,33 @@ class TestAsk:
         assert data["model"] == "llama3.1:8b"
         assert data["fallback_used"] is False
 
-    def test_llm_error_returns_502(self, client):
-        with patch("app.main.complete", side_effect=LLMError("Ollama is down")):
+
+class TestAskFallback:
+    def test_fallback_answers(self, client):
+        with patch("app.main.complete", return_value=_fake_result(text="fallback", fallback_used=True)):
+            r = client.post("/ask", json={"question": "hi"})
+        assert r.status_code == 200
+        assert r.json()["fallback_used"] is True
+        assert r.json()["answer"] == "fallback"
+
+
+class TestAskBothFail:
+    def test_returns_502(self, client):
+        with patch("app.main.complete", side_effect=LLMError("Both models failed")):
             r = client.post("/ask", json={"question": "hi"})
         assert r.status_code == 502
-        assert "Ollama is down" in r.json()["detail"]
+        assert "Both models failed" in r.json()["detail"]
 
+
+class TestAskOllamaNotRunning:
+    def test_clear_error_message(self, client):
+        with patch("app.main.complete", side_effect=LLMError("Is Ollama running? Start it with 'ollama serve'.")):
+            r = client.post("/ask", json={"question": "hi"})
+        assert r.status_code == 502
+        assert "Is Ollama running" in r.json()["detail"]
+
+
+class TestAskValidation:
     def test_missing_question_returns_422(self, client):
         r = client.post("/ask", json={})
         assert r.status_code == 422
@@ -51,7 +63,7 @@ class TestUsage:
         assert data["total_calls"] == 0
         assert data["by_model"] == []
 
-    def test_usage_after_calls(self, client):
+    def test_usage_totals_after_two_calls(self, client):
         with patch("app.main.complete", return_value=_fake_result()):
             client.post("/ask", json={"question": "q1"})
             client.post("/ask", json={"question": "q2"})
@@ -62,10 +74,16 @@ class TestUsage:
         assert data["total_output_tokens"] == 10
         assert data["fallback_calls"] == 0
         assert len(data["by_model"]) == 1
+        assert data["by_model"][0]["calls"] == 2
 
-    def test_fallback_tracked(self, client):
+    def test_fallback_call_tracked(self, client):
         with patch("app.main.complete", return_value=_fake_result(fallback_used=True)):
             client.post("/ask", json={"question": "q"})
         r = client.get("/usage")
         assert r.json()["fallback_calls"] == 1
 
+    def test_failed_call_logged(self, client):
+        with patch("app.main.complete", side_effect=LLMError("down")):
+            client.post("/ask", json={"question": "q"})
+        r = client.get("/usage")
+        assert r.json()["total_calls"] == 1

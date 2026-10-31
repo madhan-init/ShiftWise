@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     ollama_input_price_per_million: float = 0.0
     ollama_output_price_per_million: float = 0.0
 
+    # Usage DB
+    usage_db_path: str = "./usage.db"
+
 
 @lru_cache
 def get_settings() -> Settings:
