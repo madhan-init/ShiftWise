@@ -38,7 +38,8 @@ def log_call(
     con = sqlite3.connect(db_path)
     con.execute(
         """
-        INSERT INTO llm_usage (model, input_tokens, output_tokens, cost_usd, fallback_used, latency_ms, status)
+        INSERT INTO llm_usage
+            (model, input_tokens, output_tokens, cost_usd, fallback_used, latency_ms, status)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (model, input_tokens, output_tokens, cost_usd, int(fallback_used), latency_ms, status),

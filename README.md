@@ -19,7 +19,6 @@ The hardest problem is making sure an answer never cites code from the wrong ver
 | Spring Boot source code (release tags 2.7.x, 3.3.x, latest 3.x) | https://github.com/spring-projects/spring-boot | 9,000+ source files per version, 3 versions | Not applicable (source code files) | Apache-2.0 |
 
 ## 10 real questions
-# 10 Real Questions
 
 These are the questions a developer upgrading Spring Boot 2.7 apps to 3.x would ask ShiftWise. Each question is answered only from the Spring Boot source code of the version named in the question.
 

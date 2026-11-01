@@ -1,8 +1,5 @@
 from unittest.mock import patch
 
-import httpx
-import pytest
-
 from app.llm import LLMError, LLMResult
 
 
@@ -43,7 +40,8 @@ class TestAskBothFail:
 
 class TestAskOllamaNotRunning:
     def test_clear_error_message(self, client):
-        with patch("app.main.complete", side_effect=LLMError("Is Ollama running? Start it with 'ollama serve'.")):
+        err = "Is Ollama running? Start it with 'ollama serve'."
+        with patch("app.main.complete", side_effect=LLMError(err)):
             r = client.post("/ask", json={"question": "hi"})
         assert r.status_code == 502
         assert "Is Ollama running" in r.json()["detail"]

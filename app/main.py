@@ -42,7 +42,7 @@ def ask(body: AskRequest, settings: SettingsDep) -> AskResponse:
             latency_ms=0.0,
             status="error",
         )
-        raise HTTPException(status_code=502, detail=str(exc))
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     log_call(
         db,
         model=result.model,

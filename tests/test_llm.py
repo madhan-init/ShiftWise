@@ -11,9 +11,6 @@ from app.config import Settings
 from app.llm import LLMError, LLMResult, OllamaProvider, complete, get_llm
 
 
-# -- Helpers ------------------------------------------------------------------
-
-
 def _settings(**overrides) -> Settings:
     """Build a Settings instance with sensible test defaults."""
     defaults: dict = {
@@ -55,11 +52,7 @@ def _mock_response(status_code: int = 200, json_data: dict | None = None) -> Mag
 
 @pytest.fixture
 def mock_httpx(monkeypatch):
-    """Patch httpx.Client so tests never hit the network.
-
-    Append httpx.Response mocks or Exception instances to the returned list;
-    they are consumed in FIFO order by successive ``client.post()`` calls.
-    """
+    """Patch httpx.Client so tests never hit the network."""
     responses: list = []
 
     class _MockClient:
@@ -74,7 +67,7 @@ def mock_httpx(monkeypatch):
 
         def post(self, _url, **_kwargs):
             if not responses:
-                raise RuntimeError("No mock responses left — add more to mock_httpx")
+                raise RuntimeError("No mock responses left")
             action = responses.pop(0)
             if isinstance(action, Exception):
                 raise action
@@ -82,9 +75,6 @@ def mock_httpx(monkeypatch):
 
     monkeypatch.setattr("app.llm.httpx.Client", _MockClient)
     return responses
-
-
-# -- Success tests ------------------------------------------------------------
 
 
 class TestOllamaSuccess:
@@ -115,7 +105,6 @@ class TestOllamaSuccess:
         assert result.cost_usd == pytest.approx(expected)
 
     def test_missing_token_counts_default_to_zero(self, mock_httpx):
-        """Ollama may omit token counts in some edge cases."""
         json_data = {"message": {"role": "assistant", "content": "ok"}}
         mock_httpx.append(_mock_response(json_data=json_data))
 
@@ -123,9 +112,6 @@ class TestOllamaSuccess:
 
         assert result.input_tokens == 0
         assert result.output_tokens == 0
-
-
-# -- Fallback tests -----------------------------------------------------------
 
 
 class TestOllamaFallback:
@@ -157,9 +143,6 @@ class TestOllamaFallback:
         assert result.text == "recovered"
 
 
-# -- Both-fail tests ----------------------------------------------------------
-
-
 class TestOllamaBothFail:
     def test_both_timeout_raises_llm_error(self, mock_httpx):
         mock_httpx.append(httpx.ReadTimeout("primary timeout"))
@@ -183,9 +166,6 @@ class TestOllamaBothFail:
             complete("hi", settings=_settings())
 
 
-# -- Factory tests ------------------------------------------------------------
-
-
 class TestProviderFactory:
     def test_default_provider_is_ollama(self):
         llm = get_llm(_settings())
@@ -194,4 +174,3 @@ class TestProviderFactory:
     def test_unknown_provider_raises(self):
         with pytest.raises(LLMError, match="Unknown LLM_PROVIDER"):
             get_llm(_settings(llm_provider="openai"))
-
