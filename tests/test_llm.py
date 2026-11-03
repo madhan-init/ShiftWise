@@ -73,7 +73,7 @@ def mock_httpx(monkeypatch):
                 raise action
             return action
 
-    monkeypatch.setattr("app.llm.httpx.Client", _MockClient)
+    monkeypatch.setattr("app.llm.client.httpx.Client", _MockClient)
     return responses
 
 
