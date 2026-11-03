@@ -14,7 +14,7 @@ Commit after every class. Tag every Friday: `git tag week-N && git push origin w
 - [x] POST /chat calls an LLM and returns structured JSON
 - [x] Streaming, timeouts, retry and a fallback model
 - [x] Cost log + GET /usage
-- [ ] Docker Compose (API + Postgres/pgvector) runs
+- [x] Docker Compose (API + Postgres/pgvector) runs
 - [x] CI green, live link in README
 - [x] Tag week-2 pushed
 
@@ -36,3 +36,4 @@ Commit after every class. Tag every Friday: `git tag week-N && git push origin w
 | 2026-11-01 | Resolved ruff lint checks across codebase | 75cdc37 |
 | 2026-11-01 | Fixed CI runner pytest module path in pyproject.toml | b8b51f6 |
 | 2026-11-03 | Refactored LLM module into modular app/llm package | e156957 |
+| 2026-11-03 | Added Docker Compose for API and Postgres/pgvector services | c23eaaa |

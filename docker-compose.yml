@@ -1,0 +1,49 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: shiftwise-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-shiftwise}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shiftwise}
+      POSTGRES_DB: ${POSTGRES_DB:-shiftwise}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-shiftwise} -d ${POSTGRES_DB:-shiftwise}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shiftwise-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      PORT: 8000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-shiftwise}:${POSTGRES_PASSWORD:-shiftwise}@db:5432/${POSTGRES_DB:-shiftwise}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-shiftwise}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-shiftwise}
+      POSTGRES_DB: ${POSTGRES_DB:-shiftwise}
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
+      OLLAMA_FALLBACK_MODEL: ${OLLAMA_FALLBACK_MODEL:-llama3.1:8b}
+      USAGE_DB_PATH: /app/usage.db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+

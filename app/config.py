@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     # Usage DB
     usage_db_path: str = "./usage.db"
 
+    # Database (Postgres + pgvector)
+    database_url: str = "postgresql://shiftwise:shiftwise@localhost:5432/shiftwise"
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
+    postgres_user: str = "shiftwise"
+    postgres_password: str = "shiftwise"
+    postgres_db: str = "shiftwise"
+
 
 @lru_cache
 def get_settings() -> Settings:
