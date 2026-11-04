@@ -1,4 +1,13 @@
 # ShiftWise
+
+[![CI](https://github.com/madhan-init/ShiftWise/actions/workflows/ci.yml/badge.svg)](https://github.com/madhan-init/ShiftWise/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Render](https://img.shields.io/badge/Render-Deployed-46E3B7?style=flat&logo=render&logoColor=white)](https://shiftwise-kml6.onrender.com/health)
+
+*Live:* https://shiftwise-kml6.onrender.com/health 
+
 Answers for the exact framework version you run, plus a clear list of what changed between versions.
 ## Problem
 Many Indian services companies still run old Spring Boot versions and are now upgrading to 3.x. Developers mix up advice written for 2.7 and 3.x, and renamed properties fail silently at runtime because Spring ignores unknown keys. There is no reliable list of what changed in the code between versions, so problems show up late in testing or production. ShiftWise answers every question using only the Spring Boot source code of the version the developer selects, and shows exactly what changed between two versions. It also reviews upgrade pull requests and comments with cited fixes.
@@ -39,6 +48,14 @@ These are the questions a developer upgrading Spring Boot 2.7 apps to 3.x would 
 
 Question 10 cannot be answered from the indexed data. `WebSecurityConfigurerAdapter` belongs to Spring Security, which is a separate project and is not part of the Spring Boot repository. The expected behaviour is that ShiftWise states that the class is not found in the indexed Spring Boot source for the selected version, and does not guess.
 
+## Tech stack
+- **Backend / API:** FastAPI, Pydantic, Uvicorn, HTTPX
+- **Database & Vectors:** PostgreSQL 16 with `pgvector`, SQLite (local cost logging)
+- **LLM / Inference:** Ollama (`llama3.1:8b` primary + fallback), safe retries & timeout handling
+- **DevOps & CI/CD:** Docker, Docker Compose, GitHub Actions CI
+- **Code Quality:** Ruff (linter & formatter), pre-commit hooks
+- **Deployment:** Render
+
 ## Run it
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
@@ -49,4 +66,4 @@ curl localhost:8000/health
 ```
 
 ## Live link
-Added in Week 2
+https://shiftwise-kml6.onrender.com/health

@@ -28,12 +28,19 @@ Commit after every class. Tag every Friday: `git tag week-N && git push origin w
 ## Daily log
 | Date | What I did today | Commit |
 |---|---|---|
-| 2026-10-29 | Implemented LLM client with Ollama provider, retry, fallback, and tests | 2e62a8e |
-| 2026-10-29 | Added /ask and /usage endpoints with Pydantic schemas | a9f5f5b |
-| 2026-10-31 | Added SQLite usage storage (llm_usage table) and full endpoint test suite | 41fb098 |
-| 2026-10-31 | Updated .env.example with LLM and database settings | f2a757c |
-| 2026-11-01 | Created DESIGN.md with API endpoints and database schema | 541e473 |
-| 2026-11-01 | Resolved ruff lint checks across codebase | 75cdc37 |
-| 2026-11-01 | Fixed CI runner pytest module path in pyproject.toml | b8b51f6 |
-| 2026-11-03 | Refactored LLM module into modular app/llm package | e156957 |
-| 2026-11-03 | Added Docker Compose for API and Postgres/pgvector services | c23eaaa |
+| 21 Oct 2026 | Initialized repository from Examate template, /health route, Dockerfile, and CI workflow | d669627 |
+| 21 Oct 2026 | Added README with project description and problem statement | e89e9dc |
+| 22 Oct 2026 | Collected Spring Boot source code samples (2.7.18, 3.3.13, 3.5.16) in data/sample/ | 4c5a75f |
+| 22 Oct 2026 | Documented dataset details and licenses in DATASET.md | a6d96c8 |
+| 22 Oct 2026 | Updated README with framework version change clarifications | aeefb14 |
+| 24 Oct 2026 | Added 10 evaluation questions and setup instructions in README (tag week-1) | d82e2ef |
+| 29 Oct 2026 | Implemented LLM client with Ollama provider, retry, fallback, and tests | 2e62a8e |
+| 29 Oct 2026 | Added /ask and /usage endpoints with Pydantic schemas | a9f5f5b |
+| 31 Oct 2026 | Added SQLite usage storage (llm_usage table) and full endpoint test suite | 41fb098 |
+| 31 Oct 2026 | Updated .env.example with LLM and database settings | f2a757c |
+| 01 Nov 2026 | Created DESIGN.md with API endpoints and database schema | 541e473 |
+| 01 Nov 2026 | Resolved ruff lint checks across codebase | 75cdc37 |
+| 01 Nov 2026 | Fixed CI runner pytest module path in pyproject.toml (tag week-2) | b8b51f6 |
+| 03 Nov 2026 | Streaming /chat, safe retries, fallback model, cost log, GET /usage (refactored to app/llm) | e156957 |
+| 03 Nov 2026 | Docker Compose (API + pgvector), /ready route, .dockerignore | adac692 |
+| 04 Nov 2026 | CI workflow (test + docker-smoke), pre-commit hooks, deployed to Render, live link in README | 49b430f |
