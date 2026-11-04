@@ -72,15 +72,11 @@ class OllamaProvider(LLMProvider):
                 "Is Ollama running? Start it with 'ollama serve'."
             ) from exc
         except httpx.TimeoutException as exc:
-            raise _RetryableError(
-                f"Request to model '{model}' timed out after {self._timeout}s."
-            ) from exc
+            raise _RetryableError(f"Request to model '{model}' timed out after {self._timeout}s.") from exc
         latency_ms = (time.perf_counter() - start) * 1000
 
         if response.status_code >= 500:
-            raise _RetryableError(
-                f"Ollama returned HTTP {response.status_code} for model '{model}'."
-            )
+            raise _RetryableError(f"Ollama returned HTTP {response.status_code} for model '{model}'.")
 
         response.raise_for_status()
 
@@ -89,8 +85,7 @@ class OllamaProvider(LLMProvider):
         input_tokens = data.get("prompt_eval_count", 0)
         output_tokens = data.get("eval_count", 0)
         cost_usd = (
-            input_tokens * self._input_price / 1_000_000
-            + output_tokens * self._output_price / 1_000_000
+            input_tokens * self._input_price / 1_000_000 + output_tokens * self._output_price / 1_000_000
         )
 
         return LLMResult(
@@ -114,8 +109,7 @@ def get_llm(settings: Settings | None = None) -> LLMProvider:
     provider_name = settings.llm_provider.lower()
     if provider_name not in _PROVIDERS:
         raise LLMError(
-            f"Unknown LLM_PROVIDER '{provider_name}'. "
-            f"Supported: {', '.join(sorted(_PROVIDERS))}"
+            f"Unknown LLM_PROVIDER '{provider_name}'. " f"Supported: {', '.join(sorted(_PROVIDERS))}"
         )
     return _PROVIDERS[provider_name](settings)
 

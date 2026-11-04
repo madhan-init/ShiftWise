@@ -5,8 +5,13 @@ from app.llm import LLMError, LLMResult
 
 def _fake_result(text="answer", model="llama3.1:8b", fallback_used=False):
     return LLMResult(
-        text=text, model=model, input_tokens=10, output_tokens=5,
-        cost_usd=0.0, latency_ms=100.0, fallback_used=fallback_used,
+        text=text,
+        model=model,
+        input_tokens=10,
+        output_tokens=5,
+        cost_usd=0.0,
+        latency_ms=100.0,
+        fallback_used=fallback_used,
     )
 
 
