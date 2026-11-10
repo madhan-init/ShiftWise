@@ -9,14 +9,21 @@ class Settings(BaseSettings):
     app_name: str = "examate-rag"
     environment: str = "local"  # local | ci | production
 
-    # LLM provider
-    llm_provider: str = "ollama"
+    # LLM provider ("gemini" | "ollama")
+    llm_provider: str = "gemini"
+    llm_timeout_seconds: int = 60
+
+    # Gemini settings
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-1.5-flash"
+    gemini_fallback_model: str = "gemini-1.5-flash-8b"
+    gemini_input_price_per_million: float = 0.075
+    gemini_output_price_per_million: float = 0.30
+
+    # Ollama settings (fallback / alternative local provider)
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
     ollama_fallback_model: str = "llama3.1:8b"
-    llm_timeout_seconds: int = 60
-
-    # Cost per million tokens (0 for local models)
     ollama_input_price_per_million: float = 0.0
     ollama_output_price_per_million: float = 0.0
 
