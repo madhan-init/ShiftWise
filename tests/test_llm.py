@@ -8,7 +8,7 @@ import httpx
 import pytest
 
 from app.config import Settings
-from app.llm import LLMError, LLMResult, OllamaProvider, complete, get_llm
+from app.llm import GeminiProvider, LLMError, LLMResult, OllamaProvider, complete, get_llm
 
 
 def _settings(**overrides) -> Settings:
@@ -26,6 +26,46 @@ def _settings(**overrides) -> Settings:
     }
     defaults.update(overrides)
     return Settings(**defaults)
+
+
+def _gemini_settings(**overrides) -> Settings:
+    """Build a Settings instance for Gemini tests."""
+    defaults: dict = {
+        "app_name": "examate-rag",
+        "environment": "test",
+        "llm_provider": "gemini",
+        "gemini_api_key": "test-key-123",
+        "gemini_model": "gemini-1.5-flash",
+        "gemini_fallback_model": "gemini-1.5-flash-8b",
+        "llm_timeout_seconds": 5,
+        "gemini_input_price_per_million": 0.075,
+        "gemini_output_price_per_million": 0.30,
+    }
+    defaults.update(overrides)
+    return Settings(**defaults)
+
+
+def _gemini_json(
+    content: str = "Hello from Gemini!", prompt_tokens: int = 15, output_tokens: int = 10
+) -> dict:
+    """Build a realistic Gemini generateContent JSON body."""
+    return {
+        "candidates": [
+            {
+                "content": {
+                    "parts": [{"text": content}],
+                    "role": "model",
+                },
+                "finishReason": "STOP",
+            }
+        ],
+        "usageMetadata": {
+            "promptTokenCount": prompt_tokens,
+            "candidatesTokenCount": output_tokens,
+            "totalTokenCount": prompt_tokens + output_tokens,
+        },
+        "modelVersion": "gemini-1.5-flash",
+    }
 
 
 def _ollama_json(content: str = "Hello!", prompt_eval_count: int = 10, eval_count: int = 5) -> dict:
@@ -166,9 +206,117 @@ class TestOllamaBothFail:
             complete("hi", settings=_settings())
 
 
+class TestGeminiSuccess:
+    def test_returns_llm_result(self, mock_httpx):
+        mock_httpx.append(_mock_response(json_data=_gemini_json("Hello from Gemini!", 25, 15)))
+
+        result = complete("Say hi", settings=_gemini_settings())
+
+        assert isinstance(result, LLMResult)
+        assert result.text == "Hello from Gemini!"
+        assert result.model == "gemini-1.5-flash"
+        assert result.input_tokens == 25
+        assert result.output_tokens == 15
+        assert result.cost_usd > 0
+        assert result.fallback_used is False
+        assert result.latency_ms >= 0
+
+    def test_cost_calculation_formula(self, mock_httpx):
+        mock_httpx.append(_mock_response(json_data=_gemini_json("test", 1_000_000, 1_000_000)))
+
+        settings = _gemini_settings(
+            gemini_input_price_per_million=0.075,
+            gemini_output_price_per_million=0.30,
+        )
+        result = complete("test", settings=settings)
+
+        expected = 0.075 + 0.30
+        assert result.cost_usd == pytest.approx(expected)
+
+    def test_missing_usage_metadata_defaults_to_zero(self, mock_httpx):
+        json_data = {"candidates": [{"content": {"parts": [{"text": "no tokens"}], "role": "model"}}]}
+        mock_httpx.append(_mock_response(json_data=json_data))
+
+        result = complete("test", settings=_gemini_settings())
+
+        assert result.input_tokens == 0
+        assert result.output_tokens == 0
+        assert result.cost_usd == 0.0
+
+
+class TestGeminiFallback:
+    def test_rate_limit_429_triggers_fallback(self, mock_httpx):
+        mock_httpx.append(_mock_response(status_code=429))
+        mock_httpx.append(_mock_response(json_data=_gemini_json("fallback answer")))
+
+        result = complete("test", settings=_gemini_settings())
+
+        assert result.fallback_used is True
+        assert result.text == "fallback answer"
+        assert result.model == "gemini-1.5-flash-8b"
+
+    def test_timeout_triggers_fallback(self, mock_httpx):
+        mock_httpx.append(httpx.ReadTimeout("timed out"))
+        mock_httpx.append(_mock_response(json_data=_gemini_json("fallback after timeout")))
+
+        result = complete("test", settings=_gemini_settings())
+
+        assert result.fallback_used is True
+        assert result.text == "fallback after timeout"
+
+    def test_connect_error_triggers_fallback(self, mock_httpx):
+        mock_httpx.append(httpx.ConnectError("connection failed"))
+        mock_httpx.append(_mock_response(json_data=_gemini_json("fallback after connect error")))
+
+        result = complete("test", settings=_gemini_settings())
+
+        assert result.fallback_used is True
+        assert result.text == "fallback after connect error"
+
+    def test_5xx_triggers_fallback(self, mock_httpx):
+        mock_httpx.append(_mock_response(status_code=500))
+        mock_httpx.append(_mock_response(json_data=_gemini_json("recovered from 500")))
+
+        result = complete("test", settings=_gemini_settings())
+
+        assert result.fallback_used is True
+        assert result.text == "recovered from 500"
+
+
+class TestGeminiErrors:
+    def test_missing_api_key_raises_llm_error(self):
+        settings = _gemini_settings(gemini_api_key="")
+        with pytest.raises(LLMError, match="GEMINI_API_KEY is not set"):
+            complete("test", settings=settings)
+
+    def test_client_error_401_raises_without_retry(self, mock_httpx):
+        mock_httpx.append(_mock_response(status_code=401, json_data={"error": "API key invalid"}))
+
+        with pytest.raises(LLMError, match="Gemini API error"):
+            complete("test", settings=_gemini_settings())
+
+    def test_both_models_fail_raises_llm_error(self, mock_httpx):
+        mock_httpx.append(httpx.ReadTimeout("primary timed out"))
+        mock_httpx.append(httpx.ReadTimeout("fallback timed out"))
+
+        with pytest.raises(LLMError, match="Both primary"):
+            complete("test", settings=_gemini_settings())
+
+    def test_empty_candidates_raises_llm_error(self, mock_httpx):
+        mock_httpx.append(_mock_response(json_data={"candidates": []}))
+
+        with pytest.raises(LLMError, match="Gemini returned no candidates"):
+            complete("test", settings=_gemini_settings())
+
+
 class TestProviderFactory:
-    def test_default_provider_is_ollama(self):
-        llm = get_llm(_settings())
+    def test_default_provider_is_gemini(self):
+        settings = Settings(gemini_api_key="key")
+        llm = get_llm(settings)
+        assert isinstance(llm, GeminiProvider)
+
+    def test_can_select_ollama_provider(self):
+        llm = get_llm(_settings(llm_provider="ollama"))
         assert isinstance(llm, OllamaProvider)
 
     def test_unknown_provider_raises(self):
