@@ -99,8 +99,95 @@ class OllamaProvider(LLMProvider):
         )
 
 
+class GeminiProvider(LLMProvider):
+    def __init__(self, settings: Settings) -> None:
+        self._api_key = settings.gemini_api_key
+        self._primary = settings.gemini_model
+        self._fallback = settings.gemini_fallback_model
+        self._timeout = settings.llm_timeout_seconds
+        self._input_price = settings.gemini_input_price_per_million
+        self._output_price = settings.gemini_output_price_per_million
+
+    def complete(self, prompt: str) -> LLMResult:
+        if not self._api_key:
+            raise LLMError(
+                "GEMINI_API_KEY is not set. Please set it in your .env file or environment variables."
+            )
+        try:
+            return self._call(self._primary, prompt, fallback_used=False)
+        except _RetryableError:
+            try:
+                return self._call(self._fallback, prompt, fallback_used=True)
+            except _RetryableError as exc:
+                raise LLMError(
+                    f"Both primary ('{self._primary}') and fallback ('{self._fallback}') "
+                    f"models failed. Last error: {exc}"
+                ) from exc
+
+    def _call(self, model: str, prompt: str, *, fallback_used: bool) -> LLMResult:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self._api_key,
+        }
+        payload = {
+            "contents": [
+                {
+                    "parts": [{"text": prompt}],
+                }
+            ]
+        }
+
+        start = time.perf_counter()
+        try:
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.post(url, headers=headers, json=payload)
+        except httpx.ConnectError as exc:
+            raise _RetryableError(f"Cannot connect to Gemini API. Error: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            raise _RetryableError(f"Request to model '{model}' timed out after {self._timeout}s.") from exc
+        latency_ms = (time.perf_counter() - start) * 1000
+
+        if response.status_code == 429:
+            raise _RetryableError(f"Gemini returned HTTP 429 (rate limit) for model '{model}'.")
+
+        if response.status_code >= 500:
+            raise _RetryableError(f"Gemini returned HTTP {response.status_code} for model '{model}'.")
+
+        if response.status_code in (400, 401, 403):
+            raise LLMError(f"Gemini API error ({response.status_code}): {response.text}")
+
+        response.raise_for_status()
+
+        data = response.json()
+        candidates = data.get("candidates", [])
+        if not candidates:
+            raise LLMError(f"Gemini returned no candidates for model '{model}'. Response: {data}")
+
+        parts = candidates[0].get("content", {}).get("parts", [])
+        text = "".join(part.get("text", "") for part in parts if "text" in part)
+
+        usage = data.get("usageMetadata", {})
+        input_tokens = usage.get("promptTokenCount", 0)
+        output_tokens = usage.get("candidatesTokenCount", 0)
+        cost_usd = (
+            input_tokens * self._input_price / 1_000_000 + output_tokens * self._output_price / 1_000_000
+        )
+
+        return LLMResult(
+            text=text,
+            model=model,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cost_usd=round(cost_usd, 6),
+            latency_ms=round(latency_ms, 2),
+            fallback_used=fallback_used,
+        )
+
+
 _PROVIDERS: dict[str, type[LLMProvider]] = {
     "ollama": OllamaProvider,
+    "gemini": GeminiProvider,
 }
 
 

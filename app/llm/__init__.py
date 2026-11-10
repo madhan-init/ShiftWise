@@ -1,4 +1,5 @@
 from app.llm.client import (
+    GeminiProvider,
     LLMError,
     LLMProvider,
     LLMResult,
@@ -8,6 +9,7 @@ from app.llm.client import (
 )
 
 __all__ = [
+    "GeminiProvider",
     "LLMError",
     "LLMProvider",
     "LLMResult",
