@@ -3,6 +3,7 @@
 [![CI](https://github.com/madhan-init/ShiftWise/actions/workflows/ci.yml/badge.svg)](https://github.com/madhan-init/ShiftWise/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Gemini](https://img.shields.io/badge/LLM-Gemini_1.5_Flash-8E75C2?style=flat&logo=google%20gemini&logoColor=white)](https://ai.google.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Render](https://img.shields.io/badge/Render-Deployed-46E3B7?style=flat&logo=render&logoColor=white)](https://shiftwise-kml6.onrender.com/health)
 
@@ -51,7 +52,7 @@ Question 10 cannot be answered from the indexed data. `WebSecurityConfigurerAdap
 ## Tech stack
 - **Backend / API:** FastAPI, Pydantic, Uvicorn, HTTPX
 - **Database & Vectors:** PostgreSQL 16 with `pgvector`, SQLite (local cost logging)
-- **LLM / Inference:** Ollama (`llama3.1:8b` primary + fallback), safe retries & timeout handling
+- **LLM / Inference:** Google Gemini API (`gemini-1.5-flash` primary + `gemini-1.5-flash-8b` fallback, with Ollama support), safe retries & timeout handling
 - **DevOps & CI/CD:** Docker, Docker Compose, GitHub Actions CI
 - **Code Quality:** Ruff (linter & formatter), pre-commit hooks
 - **Deployment:** Render

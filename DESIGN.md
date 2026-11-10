@@ -38,18 +38,23 @@ Aggregates all rows from the `llm_usage` table. `by_model` breaks down calls, to
 
 ## LLM Provider
 
-Ollama via `POST /api/chat` (stream=false). Provider is selected by `LLM_PROVIDER` setting. The `LLMProvider` abstract class allows adding hosted providers later.
+Supports **Gemini** (hosted via Google AI Studio API) as the default provider and **Ollama** as a local provider. Selected via `LLM_PROVIDER` setting (`gemini` or `ollama`).
+
+Both providers implement the `LLMProvider` abstract base class with automatic retry, timeout handling, and fallback model switching on failures.
 
 ### Settings
 
-| Env Var | Default |
-|---------|---------|
-| LLM_PROVIDER | ollama |
-| OLLAMA_BASE_URL | http://localhost:11434 |
-| OLLAMA_MODEL | *(required)* |
-| OLLAMA_FALLBACK_MODEL | *(required)* |
-| LLM_TIMEOUT_SECONDS | 60 |
-| OLLAMA_INPUT_PRICE_PER_MILLION | 0 |
-| OLLAMA_OUTPUT_PRICE_PER_MILLION | 0 |
-| USAGE_DB_PATH | ./usage.db |
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| LLM_PROVIDER | gemini | `gemini` or `ollama` |
+| GEMINI_API_KEY | *(required for gemini)* | Google Gemini API Key |
+| GEMINI_MODEL | gemini-1.5-flash | Primary Gemini model |
+| GEMINI_FALLBACK_MODEL | gemini-1.5-flash-8b | Fallback Gemini model |
+| GEMINI_INPUT_PRICE_PER_MILLION | 0.075 | USD cost per 1M input tokens |
+| GEMINI_OUTPUT_PRICE_PER_MILLION | 0.30 | USD cost per 1M output tokens |
+| OLLAMA_BASE_URL | http://localhost:11434 | Ollama server URL |
+| OLLAMA_MODEL | llama3.1:8b | Primary Ollama model |
+| OLLAMA_FALLBACK_MODEL | llama3.1:8b | Fallback Ollama model |
+| LLM_TIMEOUT_SECONDS | 60 | Request timeout in seconds |
+| USAGE_DB_PATH | ./usage.db | SQLite database for usage tracking |
 
