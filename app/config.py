@@ -20,10 +20,13 @@ class Settings(BaseSettings):
     gemini_input_price_per_million: float = 0.075
     gemini_output_price_per_million: float = 0.30
 
-    # Ollama settings (fallback / alternative local provider)
+    # Ollama settings (fallback / alternative local provider & embeddings)
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "llama3.1:8b"
     ollama_fallback_model: str = "llama3.1:8b"
+    ollama_embed_model: str = "nomic-embed-text"
+    embed_dimensions: int = 768
+    chunk_page_lines: int = 50
     ollama_input_price_per_million: float = 0.0
     ollama_output_price_per_million: float = 0.0
 
