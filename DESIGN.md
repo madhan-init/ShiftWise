@@ -34,6 +34,30 @@ Aggregates all rows from the `llm_usage` table. `by_model` breaks down calls, to
 | latency_ms | REAL | 0.0 | Round-trip time in milliseconds |
 | status | TEXT | ok | `ok` or `error` |
 
+### chunks (PostgreSQL + pgvector)
+
+Stores parsed 50-line page chunks of Spring Boot source files with 768-dimensional Ollama embeddings.
+
+| Column | Type | Default | Description |
+|--------|------|---------|-------------|
+| id | BIGSERIAL | autoincrement | Primary key |
+| version | VARCHAR(20) | — | Framework release version (`2.7`, `3.3`, `3.5`) |
+| document | VARCHAR(500) | — | Relative source file path |
+| page | INTEGER | — | 1-based page number (50 lines = 1 page) |
+| heading | TEXT | — | Active class or method heading for page |
+| start_line | INTEGER | — | Starting line in file |
+| end_line | INTEGER | — | Ending line in file |
+| content | TEXT | — | Raw code chunk content |
+| embedding | vector(768) | — | Ollama `nomic-embed-text` dense vector |
+| metadata | JSONB | `'{}'::jsonb` | Additional file & AST attributes |
+| created_at | TIMESTAMPTZ | `NOW()` | Ingestion timestamp |
+
+- **Indexes:**
+  - `idx_chunks_version` on `version` (version locking)
+  - `idx_chunks_document` on `document`
+  - `idx_chunks_version_page` on `(version, document, page)`
+  - `idx_chunks_embedding` HNSW index using cosine distance (`vector_cosine_ops`)
+
 ---
 
 ## LLM Provider
