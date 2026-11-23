@@ -54,6 +54,51 @@ class OllamaEmbedder:
         return [self.embed_text(t) for t in texts]
 
 
-def get_embedder(settings: Settings | None = None) -> OllamaEmbedder:
-    return OllamaEmbedder(settings)
+class GeminiEmbedder:
+    """Generates 768-dimensional vector embeddings using Google Gemini API."""
 
+    def __init__(self, settings: Settings | None = None) -> None:
+        self._settings = settings or get_settings()
+        self._api_key = self._settings.gemini_api_key
+        self._model = "text-embedding-004"
+        self._dimensions = self._settings.embed_dimensions
+        self._timeout = self._settings.llm_timeout_seconds
+
+    def embed_text(self, text: str) -> list[float]:
+        if not self._api_key:
+            raise EmbeddingError(
+                "GEMINI_API_KEY is not set. Please set it in your .env or environment variables."
+            )
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{self._model}:embedContent"
+        headers = {"Content-Type": "application/json", "x-goog-api-key": self._api_key}
+        payload = {
+            "model": f"models/{self._model}",
+            "content": {"parts": [{"text": text}]},
+            "outputDimensionality": self._dimensions,
+        }
+        try:
+            with httpx.Client(timeout=self._timeout) as client:
+                resp = client.post(url, headers=headers, json=payload)
+        except httpx.ConnectError as exc:
+            raise EmbeddingError(f"Cannot connect to Gemini API: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            raise EmbeddingError(f"Gemini embedding timed out after {self._timeout}s.") from exc
+
+        if resp.status_code >= 400:
+            raise EmbeddingError(f"Gemini embedding failed ({resp.status_code}): {resp.text}")
+
+        data = resp.json()
+        values = data.get("embedding", {}).get("values")
+        if not values:
+            raise EmbeddingError(f"Unexpected response from Gemini embedding API: {data}")
+        return values
+
+    def embed_batch(self, texts: list[str]) -> list[list[float]]:
+        return [self.embed_text(t) for t in texts]
+
+
+def get_embedder(settings: Settings | None = None):
+    settings = settings or get_settings()
+    if settings.llm_provider.lower() == "gemini" and settings.gemini_api_key:
+        return GeminiEmbedder(settings)
+    return OllamaEmbedder(settings)
