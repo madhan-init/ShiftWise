@@ -5,12 +5,18 @@
 | Method | Path | Request Body | Response | Status Codes |
 |--------|------|-------------|----------|-------------|
 | GET | `/health` | — | `{ status, app, environment }` | 200 |
-| POST | `/ask` | `{ question }` | `{ answer, model, fallback_used }` | 200, 422, 502 |
+| POST | `/ask` | `{ question, version?, top_k? }` | `{ answer, model, fallback_used, version, citations[] }` | 200, 422, 502 |
 | GET | `/usage` | — | `{ total_calls, total_input_tokens, total_output_tokens, total_cost_usd, fallback_calls, by_model[] }` | 200 |
 
 ### POST /ask
 
-Sends the question to the configured LLM provider (Ollama by default). If the primary model fails (timeout, connection error, 5xx), retries once on the fallback model. Returns 502 if both fail.
+Executes the ShiftWise RAG pipeline:
+1. Generates dense embeddings for the user query using the configured embedder (Gemini or Ollama).
+2. Performs vector similarity search in PostgreSQL (`pgvector`), strictly filtered by `version` when specified for version isolation.
+3. Constructs a structured prompt with retrieved context chunks, each annotated with `[document, Page X]`.
+4. Dispatches the prompt to the LLM (Gemini with fallback to Gemini 1.5 Flash 8B, or Ollama).
+5. Cross-checks citations in the LLM answer against retrieved chunks to ensure verified page-level citations.
+6. Returns 502 if primary and fallback models fail. Log call and token metrics into SQLite usage database.
 
 ### GET /usage
 

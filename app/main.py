@@ -6,6 +6,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from app.config import Settings, get_settings
 from app.db import get_usage, init_db, log_call
 from app.llm import LLMError, complete
+from app.rag import query_rag
 from app.schemas import AskRequest, AskResponse, ModelUsage, UsageResponse
 
 
@@ -15,7 +16,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Examate RAG starter", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="ShiftWise — Spring Boot Migration Assistant", version="0.2.0", lifespan=lifespan)
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
@@ -30,7 +31,13 @@ def health(settings: SettingsDep) -> dict:
 def ask(body: AskRequest, settings: SettingsDep) -> AskResponse:
     db = settings.usage_db_path
     try:
-        result = complete(body.question)
+        result, citations = query_rag(
+            question=body.question,
+            version=body.version,
+            top_k=body.top_k,
+            settings=settings,
+            completer=complete,
+        )
     except LLMError as exc:
         log_call(
             db,
@@ -52,7 +59,13 @@ def ask(body: AskRequest, settings: SettingsDep) -> AskResponse:
         fallback_used=result.fallback_used,
         latency_ms=result.latency_ms,
     )
-    return AskResponse(answer=result.text, model=result.model, fallback_used=result.fallback_used)
+    return AskResponse(
+        answer=result.text,
+        model=result.model,
+        fallback_used=result.fallback_used,
+        version=body.version,
+        citations=citations,
+    )
 
 
 @app.get("/usage")
