@@ -76,6 +76,7 @@ def main() -> None:
     print(f"Embedding Model: {settings.ollama_embed_model} (768-dim)")
     print()
 
+    pages_per_version = max(1, args.limit_pages // len(args.versions))
     all_chunks = []
     for ver in args.versions:
         # Normalize version string (e.g. 2.7.18 -> 2.7)
@@ -87,14 +88,12 @@ def main() -> None:
         for file in files:
             chunks = parse_file(file, version=short_ver, page_size_lines=args.page_size)
             ver_chunks.extend(chunks)
-            if len(all_chunks) + len(ver_chunks) >= args.limit_pages:
+            if len(ver_chunks) >= pages_per_version:
+                ver_chunks = ver_chunks[:pages_per_version]
                 break
 
         print(f"  -> Generated {len(ver_chunks)} pages/chunks for version {short_ver}")
         all_chunks.extend(ver_chunks)
-        if len(all_chunks) >= args.limit_pages:
-            all_chunks = all_chunks[: args.limit_pages]
-            break
 
     print()
     print(f"Total Pages Parsed: {len(all_chunks)}")
@@ -125,7 +124,8 @@ def main() -> None:
         sys.exit(1)
 
     embedder = get_embedder()
-    print(f"Embedding {len(all_chunks)} chunks with Ollama ({settings.ollama_embed_model})...")
+    embedder_name = type(embedder).__name__
+    print(f"Embedding {len(all_chunks)} chunks with {embedder_name} (768-dim)...")
 
     batch_size = 20
     chunks_to_insert = []
